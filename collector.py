@@ -38,7 +38,8 @@ def collect_posts(subreddits, total_limit):
                 fetched += len(items)
                 if not after or len(items) == 0:
                     break
-            except Exception:
+            except Exception as e:
+                print(f"Error fetching {s}: {e}")
                 break
     unique = {}
     for p in collected:

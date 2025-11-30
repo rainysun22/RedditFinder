@@ -13,8 +13,8 @@ class handler(BaseHTTPRequestHandler):
         limit = int(payload.get("limit") or 200)
         posts = collect_posts(subs, limit)
         analysis = analyze_posts(posts)
-        write_pages_bulk(analysis)
-        result = {"posts": posts, "analysis": analysis, "count": len(posts)}
+        notion_res = write_pages_bulk(analysis)
+        result = {"posts": posts, "analysis": analysis, "count": len(posts), "_notion_debug": notion_res}
         data = json.dumps(result).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
