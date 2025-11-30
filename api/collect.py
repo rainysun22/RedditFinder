@@ -8,8 +8,33 @@ from http.server import BaseHTTPRequestHandler
 from collector import collect_posts
 from analyzer import analyze_posts
 from notion_sync import sync_to_notion
+from translator import translate_text_real
 import json
 import traceback
+
+def translate_analysis(analysis_results):
+    """Translate analysis results to Chinese before syncing"""
+    print("Translating results to Chinese...")
+    translated_results = []
+    for item in analysis_results:
+        # Clone item to avoid modifying original if needed elsewhere (though here it's fine)
+        new_item = item.copy()
+        
+        # Translate Title
+        if new_item.get("title"):
+            new_item["title"] = translate_text_real(new_item["title"], "zh-CN")
+            
+        # Translate Summary
+        if new_item.get("summary"):
+            new_item["summary"] = translate_text_real(new_item["summary"], "zh-CN")
+            
+        # Translate Category (optional, but good for consistency)
+        if new_item.get("category"):
+            # Simple mapping or translate
+            new_item["category"] = translate_text_real(new_item["category"], "zh-CN")
+            
+        translated_results.append(new_item)
+    return translated_results
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -36,12 +61,15 @@ class handler(BaseHTTPRequestHandler):
             print(f"Collected {len(posts)} posts. Starting analysis...")
             analysis = analyze_posts(posts)
             
+            # Translate before syncing
+            translated_analysis = translate_analysis(analysis)
+            
             print("Syncing to Notion...")
-            synced = sync_to_notion(analysis)
+            synced = sync_to_notion(translated_analysis)
             
             response = {
                 "posts": posts,
-                "analysis": analysis,
+                "analysis": translated_analysis, # Return translated
                 "count": len(posts),
                 "notion_synced": synced
             }
@@ -83,12 +111,15 @@ class handler(BaseHTTPRequestHandler):
             print(f"Collected {len(posts)} posts. Starting analysis...")
             analysis = analyze_posts(posts)
             
+            # Translate before syncing
+            translated_analysis = translate_analysis(analysis)
+            
             print("Syncing to Notion...")
-            synced = sync_to_notion(analysis)
+            synced = sync_to_notion(translated_analysis)
             
             response = {
                 "posts": posts,
-                "analysis": analysis,
+                "analysis": translated_analysis,
                 "count": len(posts),
                 "notion_synced": synced
             }
