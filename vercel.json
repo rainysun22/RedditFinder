@@ -1,0 +1,12 @@
+{
+  "builds": [
+    {"src": "api/**/*.py", "use": "@vercel/python"}
+  ],
+  "routes": [
+    {"src": "/api/collect", "dest": "/api/collect.py"},
+    {"src": "/api/generate", "dest": "/api/generate.py"},
+    {"src": "/api/deploy", "dest": "/api/deploy.py"},
+    {"src": "/api/notion-update", "dest": "/api/notion_update.py"},
+    {"src": "/api/notion-webhook", "dest": "/api/notion_webhook.py"}
+  ]
+}
