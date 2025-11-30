@@ -36,3 +36,6 @@ def write_pages_bulk(records):
     for r in records:
         res.append(write_page(r))
     return res
+
+# Alias for compatibility
+sync_to_notion = write_pages_bulk
