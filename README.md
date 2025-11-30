@@ -7,3 +7,7 @@ API 路由：
 - POST /api/generate
 - POST /api/deploy
 - POST /api/notion-update
+
+## 部署说明
+
+请查看 [DEPLOY.md](./DEPLOY.md) 获取详细的部署指南，包括 Notion 配置、Vercel 部署和 Cloudflare CRON 设置。
