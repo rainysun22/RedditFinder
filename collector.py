@@ -1,49 +1,65 @@
-import urllib.request
+import os
 import json
-
-def fetch_subreddit_page(subreddit, limit, after):
-    base = "https://www.reddit.com/r/" + subreddit + "/new.json?limit=" + str(min(limit, 100))
-    url = base + ("&after=" + after if after else "")
-    req = urllib.request.Request(url, headers={"User-Agent": "ProductAutoBuilder/1.0"})
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    items = []
-    for child in data.get("data", {}).get("children", []):
-        d = child.get("data", {})
-        items.append({
-            "id": d.get("name"),
-            "subreddit": d.get("subreddit"),
-            "title": d.get("title"),
-            "body": d.get("selftext") or "",
-            "score": int(d.get("score") or 0),
-            "num_comments": int(d.get("num_comments") or 0),
-            "created_utc": int(d.get("created_utc") or 0),
-            "url": d.get("url"),
-            "permalink": d.get("permalink"),
-            "author": d.get("author"),
-            "_ext": {"source": "reddit_public"}
-        })
-    return items, data.get("data", {}).get("after")
+from redditsfinder import RedditsFinder
 
 def collect_posts(subreddits, total_limit):
+    # RedditsFinder usually prints to stdout or returns JSON.
+    # Based on typical usage:
+    # f = RedditsFinder(subreddits=["subreddit_name"], limit=N)
+    # posts = f.get_posts()
+    
     collected = []
-    per = int(max(1, total_limit // len(subreddits)))
-    for s in subreddits:
-        after = None
-        fetched = 0
-        while fetched < per:
-            try:
-                items, after = fetch_subreddit_page(s, per - fetched, after)
-                collected.extend(items)
-                fetched += len(items)
-                if not after or len(items) == 0:
-                    break
-            except Exception as e:
-                print(f"Error fetching {s}: {e}")
-                break
+    # Distribute limit among subreddits
+    per_sub_limit = max(1, int(total_limit / len(subreddits)))
+    
+    for sub_name in subreddits:
+        try:
+            # RedditsFinder 2.x usage
+            # Note: RedditsFinder might write to a file or return a dict.
+            # We will use it to fetch and then parse the result.
+            finder = RedditsFinder()
+            # The library's API might vary, but assuming standard usage:
+            # It often returns a JSON-compatible list of dicts
+            # We capture the result. 
+            # Since RedditsFinder 2.1.3 is a scraper wrapper, it might not need API keys.
+            
+            # Using the library's simplified interface if available, 
+            # otherwise we instantiate and call specific methods.
+            # Assuming scrape_subreddit or similar method exists.
+            # If the library is strictly CLI, we might need to subprocess it, 
+            # but let's try to import and use the class.
+            
+            # Standard scraping
+            posts = finder.get_posts(subreddit_name=sub_name, limit=per_sub_limit)
+            
+            if posts:
+                for p in posts:
+                    # Normalize fields
+                    collected.append({
+                        "id": p.get("id", ""),
+                        "subreddit": sub_name,
+                        "title": p.get("title", ""),
+                        "body": p.get("self_text", "") or p.get("body", "") or "",
+                        "score": int(p.get("score", 0) or 0),
+                        "num_comments": int(p.get("num_comments", 0) or 0),
+                        "created_utc": float(p.get("created_utc", 0) or 0),
+                        "url": p.get("url", ""),
+                        "permalink": p.get("permalink", ""),
+                        "author": p.get("author", ""),
+                        "_ext": {"source": "redditsfinder"}
+                    })
+        except Exception as e:
+            print(f"Error collecting from r/{sub_name}: {e}")
+            continue
+
+    # Deduplicate by ID
     unique = {}
     for p in collected:
-        unique[p["id"]] = p
+        if p["id"]:
+            unique[p["id"]] = p
+    
     posts = list(unique.values())
+    # Sort by score (desc) then time (desc)
     posts.sort(key=lambda x: (-x["score"], -x["created_utc"]))
+    
     return posts[:total_limit]
